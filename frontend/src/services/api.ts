@@ -7,7 +7,7 @@ import type {
   FeedbackPayload 
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -17,30 +17,38 @@ class ApiService {
       'Accept': 'application/json',
     };
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...defaultHeaders,
-        ...options.headers,
-      },
-    });
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...defaultHeaders,
+          ...options.headers,
+        },
+      });
 
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.detail) {
-          errorMessage = typeof errorData.detail === 'string' 
-            ? errorData.detail 
-            : JSON.stringify(errorData.detail);
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.detail) {
+            errorMessage = typeof errorData.detail === 'string' 
+              ? errorData.detail 
+              : JSON.stringify(errorData.detail);
+          }
+        } catch {
+          // Fallback
         }
-      } catch {
-        // Fallback
+        throw new Error(errorMessage);
       }
-      throw new Error(errorMessage);
-    }
 
-    return response.json();
+      return await response.json();
+    } catch (err: any) {
+      // If relative proxy failed or direct call failed, provide helpful message
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        throw new Error('Could not connect to detection backend. Please ensure the backend server is running on http://127.0.0.1:8000.');
+      }
+      throw err;
+    }
   }
 
   async checkHealth(): Promise<{ status: string; service: string }> {

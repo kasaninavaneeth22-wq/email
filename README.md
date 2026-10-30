@@ -210,7 +210,6 @@ pip install -r requirements.txt
 python -m pytest tests -v
 
 # Start backend server
-python run.py
 ```
 Backend API will be accessible at:
 - **API URL**: `http://127.0.0.1:8000`
